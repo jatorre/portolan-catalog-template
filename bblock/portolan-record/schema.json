@@ -17,7 +17,7 @@
     },
     "portolan:access": {
       "type": "string",
-      "enum": ["iceberg_scan", "attach", "read_parquet", "download"],
+      "enum": ["iceberg_scan", "attach", "read_parquet", "read_raquet", "download"],
       "description": "Primary recommended access method for this distribution."
     },
     "portolan:source_repo": {

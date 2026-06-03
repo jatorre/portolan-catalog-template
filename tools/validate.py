@@ -137,7 +137,9 @@ for ip in glob.glob("items/*.json"):
         if ep and ep != PUBLIC_BASE:
             err(f"{ip} assets.{name}: iceberg_endpoint {ep} != PUBLIC_BASE {PUBLIC_BASE}")
         href = asset.get("href", "")
-        if href.startswith(PUBLIC_BASE):
+        # iceberg assets point at metadata.json that must be in git; raquet/remote assets point
+        # at data bytes on the bucket (not in git) — only check the former locally.
+        if href.startswith(PUBLIC_BASE) and href.endswith(".metadata.json"):
             local = href[len(PUBLIC_BASE):].lstrip("/")
             if not os.path.exists(local):
                 err(f"{ip} assets.{name}: referenced metadata not in repo → {local}")
