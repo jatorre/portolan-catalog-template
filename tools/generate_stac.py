@@ -103,6 +103,59 @@ def records_record(d):
             "bbox": d["bbox"], "geometry": geom_from_bbox(d["bbox"]), "properties": props, "links": links}
 
 
+def build_readme(descs):
+    """A publisher-specific README for an instantiated catalog (overwrites the template's)."""
+    flag = C.get("flag", "")
+    L = [f"# {flag} {C['publisher']} — Portolan catalog\n",
+         C.get("description",
+               f"A Portolan spatial-data catalog from **{C['publisher']}**: git-sourced metadata, "
+               f"published to object storage as a **static Apache Iceberg REST catalog** + STAC + "
+               f"OGC API - Records + direct download — readable with no server."), "",
+         f"**Catalog endpoint (Iceberg REST):** `{BASE}`", "",
+         "## Datasets\n", "| Dataset | What it is | Access |", "|---|---|---|"]
+    first_table = None
+    for d in descs:
+        rep = d.get("representation", "iceberg")
+        if rep == "iceberg":
+            acc = " · ".join(f"`{t}`" for t in d["tables"]); first_table = first_table or d["tables"][0]
+        elif rep == "raquet":
+            acc = "raquet raster (`read_raquet`)"
+        else:
+            acc = "remote GeoParquet (`read_parquet`)"
+        desc = (d.get("description", "") or "").replace("\n", " ")
+        L.append(f"| **{d.get('title', d['id'])}** (`{d['id']}`) | {desc} | {acc} |")
+    L += ["", "## Read it — no credentials, no server", ""]
+    if first_table:
+        L += ["**ATTACH (DuckDB / Snowflake):**", "```sql",
+              "INSTALL iceberg; LOAD iceberg; INSTALL httpfs; LOAD httpfs;",
+              f"ATTACH 'cat' (TYPE iceberg, ENDPOINT '{BASE}', AUTHORIZATION_TYPE 'none');",
+              f"SELECT * FROM cat.{first_table} LIMIT 10;", "```", ""]
+    L += ["**Discover:** [`catalog.json`](catalog.json) (STAC) · "
+          "[`records/catalog.json`](records/catalog.json) (OGC API - Records) · "
+          f"[`index.html`]({BASE}/index.html) (human view). Direct GeoParquet download links are in the explorer.",
+          "",
+          "## Contributing",
+          "Fix or extend the catalog with a **pull request** (edit `portolan.config.json` / "
+          "`datasets/<id>.json` / the Iceberg metadata, then run `tools/generate_stac.py` + "
+          "`tools/validate.py`); a merge republishes to the bucket. Data bytes live on the bucket, "
+          "never in git. See [`AGENTS.md`](AGENTS.md) for the agent-facing guide and the opt-in "
+          "usage-report channel.", "",
+          f"## License", f"Data: **{C.get('data_license','CC-BY-4.0')}** (© {C.get('data_provider', C['publisher'])}). "
+          "Tooling: Apache-2.0. See [`LICENSE`](LICENSE).", "",
+          "## Part of a federation",
+          "One child of the Portolan Helsinki *catalog of catalogs*: "
+          "`https://8et4c.upcloudobjects.com/carto-ogc-connect-helsinki/catalog/stac.json`", ""]
+    open("README.md", "w").write("\n".join(L) + "\n")
+
+
+def build_license():
+    open("LICENSE", "w").write(
+        f"Data and metadata: {C.get('data_license','CC-BY-4.0')} "
+        f"(SPDX: {C.get('data_license','CC-BY-4.0')}) — © {C.get('data_provider', C['publisher'])}. "
+        f"See https://creativecommons.org/licenses/by/4.0/ .\n\n"
+        "Catalog tooling (tools/, workflows): Apache-2.0 — https://www.apache.org/licenses/LICENSE-2.0 .\n")
+
+
 def union_bbox(ds):
     bs = [d["bbox"] for d in ds if d.get("bbox")]
     if not bs:
@@ -160,7 +213,9 @@ def main():
         rec_cat["links"].append({"rel": "items", "href": f"{BASE}/records/{d['id']}.json",
                                 "type": "application/geo+json", "title": d.get("title", d["id"])})
     json.dump(rec_cat, open("records/catalog.json", "w"), indent=2, ensure_ascii=False)
-    print(f"generated catalog.json + {len(descs)} item(s) + records/ for {C['publisher']}")
+    build_readme(descs)
+    build_license()
+    print(f"generated catalog.json + {len(descs)} item(s) + records/ + README + LICENSE for {C['publisher']}")
 
 
 if __name__ == "__main__":
