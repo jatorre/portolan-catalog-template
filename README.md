@@ -1,5 +1,8 @@
 # Portolan catalog template
 
+> **Note (2026-06): aligning to the canonical Portolan spec.** A catalog is now a **STAC-profile** directory (`.portolan/` + `catalog.json` + `versions.json` + one `{collection}/` per dataset), built with **`portolan-cli`** (`init`/`add`/`check`) and annotated with the **git-backed-catalog** (`git:`) and **STAC Iceberg** (`iceberg:`) extensions. See `docs-migration-recipe.md` for the exact recipe. The config-driven `tools/*.py` below are the previous generation and are being superseded by `portolan-cli` + extension injection.**
+
+
 A **GitHub template** for a Portolan spatial-data catalog: a git repo that is the *source* of a
 catalog, and publishes itself to object storage as a **static Apache Iceberg REST catalog**
 (`ATTACH` from DuckDB / Snowflake) + **STAC** + **OGC API - Records** + a **human HTML explorer**
